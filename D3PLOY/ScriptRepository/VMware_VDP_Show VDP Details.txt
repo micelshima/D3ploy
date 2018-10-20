@@ -1,0 +1,1 @@
+mccli server show-prop

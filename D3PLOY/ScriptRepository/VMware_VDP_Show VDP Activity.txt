@@ -1,0 +1,1 @@
+mccli activity show

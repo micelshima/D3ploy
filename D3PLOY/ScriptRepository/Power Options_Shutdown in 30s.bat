@@ -1,0 +1,1 @@
+shutdown.exe /s /t 30 /f

@@ -1,0 +1,2 @@
+hostname
+esxcli storage nmp device list

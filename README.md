@@ -1,6 +1,6 @@
 # D3ploy
 Powershell GUI to deploy your own scripts to remote computers.
-This version is totally rewriten in WPF and run code in different runspaces to keep the GUI responsive.
+This version is totally rewritten in WPF and run code in different runspaces to keep the GUI responsive.
 
 ![alt tag](https://2.bp.blogspot.com/-Vxr7pQMtFCo/W8tK27_4q0I/AAAAAAAACBs/bPtv13j61mYJ8-ijCWGmLjhUS_h2X2o8ACLcBGAs/s1600/D3ployGUIv3.png)
 

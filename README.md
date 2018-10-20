@@ -13,7 +13,7 @@ STEPS:
 
 This GUI allows you to execute any script to a list of computers. The only thing you need to do is store your own batches and powershell scripts under 'ScriptRepository' folder.
 
-When creating your own powershell scripts just bear in mind that the list of computers will fill the variable $computername and the credentials will be saved in $creds (PSCredential Object) and $credsplain (user and plain password object)
+When creating your own powershell scripts just bear in mind that the list of computers will fill the variable **$computername** and the credentials will be saved in **$creds** (PSCredential Object) and **$credsplain** (user and plain password object)
 Here is an example for restarting a list of computers:
 
 **restart-computer -computername $computername -credential $creds -force -confirm:$false**

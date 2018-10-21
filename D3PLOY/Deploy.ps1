@@ -1,8 +1,45 @@
-#Deploy v3 (Deploy WPF)
-#Mikel V.
-#2018/10/01
-
 #requires -version 4.0
+<#
+    .SYNOPSIS
+        D3ploy aka Deploy v3: Powershell GUI (WPF + runspaces) to execute remote commands against a list of computers
+		Mikel V.
+		2018/10/01
+
+    .DESCRIPTION
+        This script draws a WPF Form so you can easily choose a script from 'ScriptRepository' folder, 
+		write a list of target computers and choose the credentials needed to execute it.
+		When creating your own scripts keep in mind that you can create levels in TreeView using underscore character "_" in script name.
+		You can create:
+			.bat files that will be executed against windows computers with psexec
+			.ps1 regular scripts
+			.txt files that will be executed against linux computers with plink
+
+    .INPUTS
+	The scripts in 'ScriptsRepository' Folder receive these 3 variables
+        $computername:	The GUI exposes this variable with each computername in the computers textbox
+		$scope:			The GUI exposes this variable with the description of credentials combobox
+		$creds:			The GUI exposes this variable with PScredential Object of credentials combobox
+		$credsplain:	The GUI exposes this variable with a pscustomobject with plain credentials ($credsplain.username and $credsplain.password)		
+
+    .OUTPUTS
+        Outputs can be redirected to textblock in the GUI with out-textblock function. 
+
+    .EXAMPLE        
+		Create a ps1 script inside the 'ScriptRepository' Folder with this one-liner and name it Power Options_Restart Computer:
+		
+		restart-computer -computername $computername -credential $creds -force
+
+    .LINK
+        http://sistemaswin.com
+
+    .NOTES
+        1. Choose the script you want to run from ScriptRepository
+		2. Write the computernames in Computers textbox or select txt file that contains them
+		3. If needed, Select proper credentials from the credentials combobox or write a description for new ones.
+		4. Choose between the Pre-Deploy Options, whether you want to ping computers first, test the ports needed to work or do nothing
+		5. Run!
+
+#>
 . "$Psscriptroot\Functions\DeployFunctions.ps1"
 ##main##
 import-module "$PSScriptRoot\..\_Modules\MiCredentialModule"
@@ -94,7 +131,7 @@ Title="SistemasWin | MiShell Deploy | $identity" Height="550" Width="1100">
 $reader = (New-Object System.Xml.XmlNodeReader $xaml)
 $uiHash.Window = [Windows.Markup.XamlReader]::Load( $reader )
 
-#Connect to Controls
+#Connect to Controls (By Boe Prox)
 $xaml.selectNodes("//*[@*[contains(translate(name(.),'n','N'),'Name')]]")| % {
 	$uiHash.Add($_.name, $uiHash.Window.FindName($_.Name))
 }
@@ -194,12 +231,10 @@ $uiHash.ButtonRun.Add_Click( {
 					#Stop!!!
 					$uiHash.Flag = $False
 					$uiHash.buttonRun.Content = 'Run'
-					#$Script:running = $False
 				}
 				$False {
 					$uiHash.Flag = $True
 					$uiHash.buttonRun.Content = 'Stop'
-					#$Script:running = $True
 					$uihash.objcomputers = new-object system.collections.stack
 					($uihash.TextBoxComputers.text -split ("`r")) -replace "`#.*", "$([char]0)" -replace "#.*" -replace "$([char]0)", "#" -replace "^\s*" -replace "\s*$"|? {$_}| % {
 						$uihash.objcomputers.Push($_)}

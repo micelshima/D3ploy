@@ -2,8 +2,7 @@
 <#
     .SYNOPSIS
         D3ploy aka Deploy v3: Powershell GUI (WPF + runspaces) to execute remote commands against a list of computers
-		Mikel V.
-		2018/10/01
+		Mikel V. 2018/10/01
 
     .DESCRIPTION
         This script draws a WPF Form so you can easily choose a script from 'ScriptRepository' folder, 
@@ -25,7 +24,7 @@
         Outputs can be redirected to textblock in the GUI with out-textblock function. 
 
     .EXAMPLE        
-		Create a ps1 script inside the 'ScriptRepository' Folder with this one-liner and name it Power Options_Restart Computer:
+		Create a ps1 script inside the 'ScriptRepository' Folder with this one-liner and name it Power Options_Restart Computer.ps1
 		
 		restart-computer -computername $computername -credential $creds -force
 

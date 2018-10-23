@@ -5,7 +5,7 @@
 		Mikel V. 2018/10/01
 
     .DESCRIPTION
-        This script draws a WPF Form so you can easily choose a script from 'ScriptRepository' folder, 
+        This script draws a WPF Form so you can easily choose a script from 'ScriptRepository' folder,
 		write a list of target computers and choose the credentials needed to execute it.
 		When creating your own scripts keep in mind that you can create levels in TreeView using underscore character "_" in script name.
 		You can create:
@@ -18,14 +18,14 @@
         $computername:	The GUI exposes this variable with each computername in the computers textbox
 		$scope:			The GUI exposes this variable with the description of credentials combobox
 		$creds:			The GUI exposes this variable with PScredential Object of credentials combobox
-		$credsplain:	The GUI exposes this variable with a pscustomobject with plain credentials ($credsplain.username and $credsplain.password)		
+		$credsplain:	The GUI exposes this variable with a pscustomobject with plain credentials ($credsplain.username and $credsplain.password)
 
     .OUTPUTS
-        Outputs can be redirected to textblock in the GUI with out-textblock function. 
+        Outputs can be redirected to textblock in the GUI with out-textblock function.
 
-    .EXAMPLE        
+    .EXAMPLE
 		Create a ps1 script inside the 'ScriptRepository' Folder with this one-liner and name it Power Options_Restart Computer.ps1
-		
+
 		restart-computer -computername $computername -credential $creds -force
 
     .LINK
@@ -36,6 +36,7 @@
 		2. Write the computernames in Computers textbox or select txt file that contains them
 		3. If needed, Select proper credentials from the credentials combobox or write a description for new ones.
 		4. Choose between the Pre-Deploy Options, whether you want to ping computers first, test the ports needed to work or do nothing
+			*Debbuging checkbox will activate verbose and disable runspaces so you can see errors in console
 		5. Run!
 
 #>
@@ -130,7 +131,7 @@ Title="SistemasWin | MiShell Deploy | $identity" Height="550" Width="1100">
 $reader = (New-Object System.Xml.XmlNodeReader $xaml)
 $uiHash.Window = [Windows.Markup.XamlReader]::Load( $reader )
 
-#Connect to Controls (By Boe Prox)
+#Connect to Controls (Boe Prox's spell)
 $xaml.selectNodes("//*[@*[contains(translate(name(.),'n','N'),'Name')]]")| % {
 	$uiHash.Add($_.name, $uiHash.Window.FindName($_.Name))
 }
@@ -179,13 +180,13 @@ $uiHash.Window.Add_Closed( {
 		$runspaceHash.PowerShell.Dispose()
 		$runspaceHash.Clear()
 	})
-	$uihash.ButtonScriptRepository.Add_Click( {
+$uihash.ButtonScriptRepository.Add_Click( {
 		Invoke-Item "$PSScriptRoot\ScriptRepository"
 	})
-	$uihash.ButtonResults.Add_Click( {
+$uihash.ButtonResults.Add_Click( {
 		Invoke-Item "$PSScriptRoot\Results"
 	})
-	$uihash.ButtonLogs.Add_Click( {
+$uihash.ButtonLogs.Add_Click( {
 		Invoke-Item "$PSScriptRoot\Logs"
 	})
 $uihash.ButtonComputers.Add_Click( {

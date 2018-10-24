@@ -288,7 +288,10 @@ $uiHash.ButtonRun.Add_Click( {
 						update-window -control 'ButtonRun' -property 'Content' -value 'Run'
 					}#scriptblock
 					if ($uihash.CheckBoxRunspaces.isChecked) {
-						invoke-command -ScriptBlock $scriptBlock -NoNewScope -Verbose
+						$currentVerbosePreference=$VerbosePreference
+						$VerbosePreference="Continue"
+						invoke-command -ScriptBlock $scriptBlock -NoNewScope
+						$VerbosePreference=$currentVerbosePreference
 					}
 					else {
 						$runspace = [runspacefactory]::CreateRunspace()

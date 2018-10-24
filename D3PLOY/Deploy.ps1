@@ -281,17 +281,17 @@ $uiHash.ButtonRun.Add_Click( {
 
 
 							}
-							if (-NOT $uiHash.Flag) {out-textblock -message "DEPLOY CANCELLED" -MessageType "Info" ; break}
+							if (-NOT $uiHash.Flag) {out-textblock -message "DEPLOY CANCELLED" -MessageType "Error" ; break}
 						}while ($uiHash.Flag -and $uihash.objcomputers.count -gt 0)
 						out-textblock -message "END OF DEPLOYMENT" -MessageType "Info"
 						$uiHash.Flag = $False
 						update-window -control 'ButtonRun' -property 'Content' -value 'Run'
 					}#scriptblock
 					if ($uihash.CheckBoxRunspaces.isChecked) {
-						$currentVerbosePreference=$VerbosePreference
-						$VerbosePreference="Continue"
+						$currentVerbosePreference = $VerbosePreference
+						$VerbosePreference = "Continue"
 						invoke-command -ScriptBlock $scriptBlock -NoNewScope
-						$VerbosePreference=$currentVerbosePreference
+						$VerbosePreference = $currentVerbosePreference
 					}
 					else {
 						$runspace = [runspacefactory]::CreateRunspace()
@@ -308,7 +308,7 @@ $uiHash.ButtonRun.Add_Click( {
 			}#switch
 
 		}
-		else {out-textblock -message "NOTHING TO DEPLOY" -MessageType "Info"}
+		else {out-textblock -message "NOTHING TO DEPLOY" -MessageType "Warning"}
 	})
 
 $uihash.RadioButton1.Add_Checked( {

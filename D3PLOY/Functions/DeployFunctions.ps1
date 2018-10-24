@@ -75,7 +75,7 @@ Function out-textblock {
 			}, "Send")
 		switch ($MessageType) {
 			"OK" {$MessageColor = '#a3de2d'}
-			"ERROR" {$MessageColor = '#c3265d'}
+			"ERROR" {$MessageColor = '#eb2d71'}
 			"warning" {$MessageColor = '#d5cb6d'}
 			"Info" {$MessageColor = '#66d9ef'}
 			default {$MessageColor = '#f7f7f1'}

@@ -217,24 +217,24 @@ $uiHash.ButtonRun.Add_Click( {
 					$uihash.defaultlogfile = 'plink.log'; $uiHash.ports = 22
 				}
 			}
-			$uihash.scope = $uihash.ComboBoxcreds.text
-			if ($uihash.scope -ne '') {
-				$uihash.creds = select-MiCredential -scope $uihash.scope
-				$uihash.credsplain = select-MiCredential -scope $uihash.scope -plain
-				out-textblock -Source "Credentials" -Message "Using $($uihash.scope) ($($uihash.creds.username))" -MessageType 'Info' -logfile $uihash.defaultlogfile
-			}
-			else {out-textblock -Source "Credentials" -Message "Using Current Credentials ($identity)" -MessageType 'Info' -logfile $uihash.defaultlogfile}
-
 
 			Switch ($uiHash.Flag) {
 				$True {
 					#Stop!!!
 					$uiHash.Flag = $False
 					$uiHash.buttonRun.Content = 'Run'
+					out-textblock -message "DEPLOY CANCELLED" -MessageType "Error" -logfile $uihash.defaultlogfile
 				}
 				$False {
 					$uiHash.Flag = $True
 					$uiHash.buttonRun.Content = 'Stop'
+					$uihash.scope = $uihash.ComboBoxcreds.text
+					if ($uihash.scope -ne '') {
+						$uihash.creds = select-MiCredential -scope $uihash.scope
+						$uihash.credsplain = select-MiCredential -scope $uihash.scope -plain
+						out-textblock -Source "Credentials" -Message "Using $($uihash.scope) ($($uihash.creds.username))" -MessageType 'Info' -logfile $uihash.defaultlogfile
+					}
+					else {out-textblock -Source "Credentials" -Message "Using Current Credentials ($identity)" -MessageType 'Info' -logfile $uihash.defaultlogfile}
 					$uihash.objcomputers = new-object system.collections.stack
 					($uihash.TextBoxComputers.text -split ("`r")) -replace "`#.*", "$([char]0)" -replace "#.*" -replace "$([char]0)", "#" -replace "^\s*" -replace "\s*$"|? {$_}| % {
 						$uihash.objcomputers.Push($_)}
@@ -247,6 +247,7 @@ $uiHash.ButtonRun.Add_Click( {
 						$ProgressBarCount = 0
 						out-textblock -message "Deploying $($uihash.tag)" -MessageType "Info"
 						do {
+							if (-NOT $uiHash.Flag) {break}
 							$ProgressBarCount++
 							$ProgressBarPercent = [int](($ProgressBarCount / $ProgressBartotal) * 100)
 							update-window -control "ProgressBar" -property "Value" -Value $ProgressBarPercent
@@ -281,7 +282,6 @@ $uiHash.ButtonRun.Add_Click( {
 
 
 							}
-							if (-NOT $uiHash.Flag) {out-textblock -message "DEPLOY CANCELLED" -MessageType "Error" ; break}
 						}while ($uiHash.Flag -and $uihash.objcomputers.count -gt 0)
 						out-textblock -message "END OF DEPLOYMENT" -MessageType "Info"
 						$uiHash.Flag = $False

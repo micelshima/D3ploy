@@ -248,9 +248,7 @@ $uiHash.ButtonRun.Add_Click( {
 						out-textblock -message "Deploying $($uihash.tag)" -MessageType "Info"
 						do {
 							if (-NOT $uiHash.Flag) {break}
-							$ProgressBarCount++
-							$ProgressBarPercent = [int](($ProgressBarCount / $ProgressBartotal) * 100)
-							update-window -control "ProgressBar" -property "Value" -Value $ProgressBarPercent
+
 							$computername = $uihash.objcomputers.pop()
 							switch ($uihash.PreDeployOptions) {
 								1 {$computername = ping-computer $computername}
@@ -282,6 +280,9 @@ $uiHash.ButtonRun.Add_Click( {
 
 
 							}
+							$ProgressBarCount++
+							$ProgressBarPercent = [int](($ProgressBarCount / $ProgressBartotal) * 100)
+							update-window -control "ProgressBar" -property "Value" -Value $ProgressBarPercent
 						}while ($uiHash.Flag -and $uihash.objcomputers.count -gt 0)
 						out-textblock -message "END OF DEPLOYMENT" -MessageType "Info"
 						$uiHash.Flag = $False

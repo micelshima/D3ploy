@@ -26,9 +26,9 @@ Function fill-TreeView($scriptsrepository, $object) {
 				$img.source = '{0}\img\{1}.png' -f $uihash.PSscriptroot, $extension
 				$stack.children.add($img)
 				$label.content = $item
+				$label.Padding = 2
 				$stack.children.add($label)
 				$ChildItem.Header = $stack
-				#[Void]$ChildItem.Items.Add("subitem")
 				[Void]$parent.Items.Add($ChildItem)
 				$parent = $ChildItem
 			}

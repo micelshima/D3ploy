@@ -1,5 +1,5 @@
 @echo off
-set thegroup=DOMAIN\GG_AE_AdminServersComms 
+set thegroup=DOMAIN\GAdminServersComms 
 REM ---------------------------------------------
 
 net localgroup administrators %thegroup% /add

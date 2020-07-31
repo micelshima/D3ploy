@@ -1,4 +1,4 @@
-$source = '\\svpnassclfs01.acciona.int\doc_citrix$\Software\Xen7.15_ltsr CU1'
+$source = '\\server\doc_citrix$\Software\Xen7.15_ltsr CU1'
 $destination = 'c:\setup'
 $files = 'VDAServerSetup_7_15_1000.exe'
 $commands = @()
@@ -22,7 +22,7 @@ foreach ($command in $commands) {
 		out-textblock -ComputerName $computername -Source $scriptbasename -Message $premsg  -MessageType $color -logfile 'ps1command.log'
 		if ($success) {
 			#$session = New-PSSession @params
-			#Copy-Item –Path "\\Svpnapsdsc01.acciona.int\repository$\Packages\CitrixXenapp\VDAServerSetup_7_15_1000.exe" –Destination 'C:\setup' –ToSession $session
+			#Copy-Item â€“Path "\\server\doc_citrix$\Packages\CitrixXenapp\VDAServerSetup_7_15_1000.exe" â€“Destination 'C:\setup' â€“ToSession $session
 			invoke-command @params -arg $destination, $files -scriptblock {
 				param($destination, $files)
 				#fix Regedit ACL

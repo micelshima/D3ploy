@@ -3,8 +3,8 @@ set theuser=Administrator
 WMIC USERACCOUNT WHERE "Name='%theuser%'" SET PasswordExpires=FALSE
 REM ---------------------------------------------
 
-set theuser=EricssonAdmin
-set thepass=4N9XK9AO
+set theuser=LocalAdmin1
+set thepass=password1
 
 echo create local user %theuser%
 net user %theuser% %thepass% /add 
@@ -16,8 +16,8 @@ WMIC USERACCOUNT WHERE "Name='%theuser%'" SET PasswordExpires=FALSE
 
 REM ---------------------------------------------
 
-set theuser=VmwareNavigator
-set thepass=A12345678b
+set theuser=LocalAdmin2
+set thepass=password2
 
 echo create local user %theuser%
 net user %theuser% %thepass% /add 

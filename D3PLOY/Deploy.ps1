@@ -1,8 +1,8 @@
 #requires -version 4.0
 <#
     .SYNOPSIS
-        D3ploy aka Deploy v3: Powershell GUI (WPF + runspaces) to execute remote commands against a list of computers
-		Mikel V. 2018/10/01
+        D3ploy aka Deploy v3.1: Powershell GUI (WPF + runspaces) to execute remote commands against a list of computers
+		Mikel V. 2018/10/01 - revised 2020/10/05
 
     .DESCRIPTION
         This script draws a WPF Form so you can easily choose a script from 'ScriptRepository' folder,
@@ -40,25 +40,16 @@
 		5. Run!
 
 #>
+if (!$PSScriptRoot) { $Global:PSScriptRoot = split-path -parent $MyInvocation.MyCommand.Definition }
 . "$Psscriptroot\Functions\DeployFunctions.ps1"
 ##main##
 import-module "$PSScriptRoot\..\_Modules\MiCredentialModule"
-'Logs', 'Results', 'ScriptRepository'| % {if (!(test-path "$PSScriptRoot\$_")) {md "$PSScriptRoot\$_"|out-null}}
+'Logs', 'Results', 'ScriptRepository' | % { if (!(test-path "$PSScriptRoot\$_")) { md "$PSScriptRoot\$_" | out-null } }
 
 $uiHash = [hashtable]::Synchronized(@{})
-$runspaceHash = [hashtable]::Synchronized(@{})
-$jobs = [system.collections.arraylist]::Synchronized((New-Object System.Collections.Arraylist))
-$uiHash.jobFlag = $True
-$newRunspace = [runspacefactory]::CreateRunspace()
-$newRunspace.ApartmentState = "STA"
-$newRunspace.ThreadOptions = "ReuseThread"
-$newRunspace.Open()
-$newRunspace.SessionStateProxy.SetVariable("uiHash", $uiHash)
-$newRunspace.SessionStateProxy.SetVariable("runspaceHash", $runspaceHash)
-$newRunspace.SessionStateProxy.SetVariable("jobs", $jobs)
 $uiHash.Psscriptroot = $Psscriptroot
-$uihash.PreDeployOptions = 1
-
+$uihash.PreDeployOptions = 3
+$uiHash.Flag = $false
 $identity = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).identities.name
 Add-Type –assemblyName PresentationFramework
 Add-Type –assemblyName PresentationCore
@@ -104,9 +95,9 @@ Title="SistemasWin | MiShell Deploy | $identity" Height="550" Width="1100">
 			<ComboBox x:Name ="ComboBoxCreds" IsEditable="True" Margin="2,0,2,2"/>
 			<Expander Header="Pre-Deploy Options" Margin="2,2,2,1" BorderBrush="Gray">
 			<StackPanel Margin="10,4,10,0">
-			<RadioButton x:Name="RadioButton1" Content = 'test-connection' GroupName='PreDeployOptions' Margin="0,2,0,1" IsChecked="True"/>
+			<RadioButton x:Name="RadioButton1" Content = 'test-connection' GroupName='PreDeployOptions' Margin="0,2,0,1" />
 			<RadioButton x:Name="RadioButton2" Content = 'test-ports' GroupName='PreDeployOptions'/>
-			<RadioButton x:Name="RadioButton3" Content = 'test-nothing' GroupName='PreDeployOptions' Margin="0,1,0,4"/>
+			<RadioButton x:Name="RadioButton3" Content = 'test-nothing' GroupName='PreDeployOptions' Margin="0,1,0,4" IsChecked="True"/>
 			<Separator Width="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Background="Gray" />
 			<CheckBox x:Name="CheckBoxRunspaces" Content="Debugging" ToolTip="Verbose=ON, Runspaces=OFF" Margin="0,2,0,4"/>
 			</StackPanel>
@@ -132,53 +123,36 @@ $reader = (New-Object System.Xml.XmlNodeReader $xaml)
 $uiHash.Window = [Windows.Markup.XamlReader]::Load( $reader )
 
 #Connect to Controls (Boe Prox's spell)
-$xaml.selectNodes("//*[@*[contains(translate(name(.),'n','N'),'Name')]]")| % {
+$xaml.selectNodes("//*[@*[contains(translate(name(.),'n','N'),'Name')]]") | % {
 	$uiHash.Add($_.name, $uiHash.Window.FindName($_.Name))
 }
 $null = fill-treeview "$($uihash.Psscriptroot)\ScriptRepository\*" $uihash.TreeViewscripts
-if (test-path "$($uihash.PSScriptroot)\creds") {$array = gci ("$($uihash.PSScriptroot)\creds\$($env:username)" + "_*.cred")|select @{l = 'basename'; e = {$_.basename -replace ("$($env:username)_")}}|select -expand basename
+if (test-path "$($uihash.PSScriptroot)\creds") {
+	$array = gci ("$($uihash.PSScriptroot)\creds\$($env:username)" + "_*.cred") | select @{l = 'basename'; e = { $_.basename -replace ("$($env:username)_") } } | select -expand basename
 }
-if ($array -eq $null) {$array = ""}
+if ($array -eq $null) { $array = "" }
 
 if ($array.gettype().name -eq "Object[]") {
 	$uihash.ComboBoxcreds.text = $array[0]
-	$array| % {$uihash.ComboBoxcreds.addChild($_)}
+	$array | % { $uihash.ComboBoxcreds.addChild($_) }
 }
-else {$uihash.ComboBoxcreds.text = $array}
+else { $uihash.ComboBoxcreds.text = $array }
 
 $uihash.TreeViewscripts.items.Add_Selected( {
 		if ([bool]$_.OriginalSource.tag) {
 			$uihash.Tag = $_.OriginalSource.tag
 			$uihash.fullscriptname = '{0}\ScriptRepository\{1}' -f $uihash.PSScriptroot, $_.OriginalSource.tag
 		}
-		else {$uihash.fullscriptname = $uihash.Tag = $null}
+		else { $uihash.fullscriptname = $uihash.Tag = $null }
 
 	})
-#Jobs runspace
-$runspace = [runspacefactory]::CreateRunspace()
-$runspace.Open()
-$runspace.SessionStateProxy.SetVariable("uihash", $uihash)
-$runspace.SessionStateProxy.SetVariable("jobs", $jobs)
-$runspaceHash.PowerShell = [powershell]::Create().AddScript( {
-		While ($uihash.jobFlag) {
-			If ($jobs.Handle.IsCompleted) {
-				$jobs.PowerShell.EndInvoke($jobs.handle)
-				$jobs.PowerShell.Dispose()
-				$jobs.clear()
-			}
-		}
-	})
-$runspaceHash.PowerShell.Runspace = $runspace
-$runspaceHash.Handle = $runspaceHash.PowerShell.BeginInvoke()
-$uiHash.flag = $False
 
 #Events
 $uiHash.Window.Add_Closed( {
-		$uiHash.jobFlag = $False
-		sleep -Milliseconds 500
-		$runspaceHash.PowerShell.EndInvoke($runspaceHash.Handle)
-		$runspaceHash.PowerShell.Dispose()
-		$runspaceHash.Clear()
+		if ($Runspace) {
+			$Runspace.Close()
+			$Runspace.Dispose()
+		}
 	})
 $uihash.ButtonScriptRepository.Add_Click( {
 		Invoke-Item "$PSScriptRoot\ScriptRepository"
@@ -195,16 +169,11 @@ $uihash.ButtonComputers.Add_Click( {
 		$OpenFileDialog.filter = "txt (*.txt)| *.txt"
 		$OpenFileDialog.ShowDialog() | Out-Null
 		if ($OpenFileDialog.FileName) {
-			$uiHash.TextBoxComputers.Dispatcher.Invoke([action] {
-					$uiHash.TextBoxComputers.AppendText((get-content $OpenFileDialog.filename) -join "`r")
-
-				}, "Normal")
-
+			$uiHash.TextBoxComputers.Dispatcher.Invoke([action] { $uiHash.TextBoxComputers.AppendText((get-content $OpenFileDialog.filename) -join "`r") }, "Normal")
 		}
 	})
 $uiHash.ButtonRun.Add_Click( {
 		if ([bool]$uihash.TextBoxComputers.text -and [bool]$uihash.fullscriptname) {
-
 			$uihash.extension = $uihash.tag.split("\.")[1]
 			switch ($uihash.extension) {
 				"bat" {
@@ -220,10 +189,16 @@ $uiHash.ButtonRun.Add_Click( {
 
 			Switch ($uiHash.Flag) {
 				$True {
+					if ($Runspace) {
+						$Runspace.Close()
+						$Runspace.Dispose()
+					}
 					#Stop!!!
 					$uiHash.Flag = $False
 					$uiHash.buttonRun.Content = 'Run'
 					out-textblock -message "DEPLOY CANCELLED" -MessageType "Error" -logfile $uihash.defaultlogfile
+					update-window -control "ProgressBar" -property "IsIndeterminate" -Value $true
+					break
 				}
 				$False {
 					$uiHash.Flag = $True
@@ -234,10 +209,10 @@ $uiHash.ButtonRun.Add_Click( {
 						$uihash.credsplain = select-MiCredential -scope $uihash.scope -plain
 						out-textblock -Source "Credentials" -Message "Using $($uihash.scope) ($($uihash.creds.username))" -MessageType 'Info' -logfile $uihash.defaultlogfile
 					}
-					else {out-textblock -Source "Credentials" -Message "Using Current Credentials ($identity)" -MessageType 'Info' -logfile $uihash.defaultlogfile}
+					else { out-textblock -Source "Credentials" -Message "Using Current Credentials ($identity)" -MessageType 'Info' -logfile $uihash.defaultlogfile }
 					$uihash.objcomputers = new-object system.collections.stack
-					($uihash.TextBoxComputers.text -split ("`r")) -replace "`#.*", "$([char]0)" -replace "#.*" -replace "$([char]0)", "#" -replace "^\s*" -replace "\s*$"|? {$_}| % {
-						$uihash.objcomputers.Push($_)}
+					($uihash.TextBoxComputers.text -split ("`r")) -replace "`#.*", "$([char]0)" -replace "#.*" -replace "$([char]0)", "#" -replace "^\s*" -replace "\s*$" | ? { $_ } | % {
+						$uihash.objcomputers.Push($_) }
 					$scriptBlock = {
 						. "$($uihash.Psscriptroot)\Functions\DeployFunctions.ps1"
 						$scope = $uihash.scope
@@ -247,34 +222,38 @@ $uiHash.ButtonRun.Add_Click( {
 						$ProgressBarCount = 0
 						out-textblock -message "Deploying $($uihash.tag)" -MessageType "Info"
 						do {
-							if (-NOT $uiHash.Flag) {break}
+							if (-NOT $uiHash.Flag) { break }
 
 							$computername = $uihash.objcomputers.pop()
 							switch ($uihash.PreDeployOptions) {
-								1 {$computername = ping-computer $computername}
-								2 {$computername = test-ports $computername ($uiHash.ports)}
+								1 { $computername = ping-computer $computername }
+								2 { $computername = test-ports $computername ($uiHash.ports) }
 							}
 							if ([bool]$computername) {
 								switch ($uihash.extension) {
 									"bat" {
 										$cmdkeyadd = "cmdkey.exe /add:" + $computername + " /user:" + $credsplain.username + " /pass:'" + $credsplain.password + "'"
-										if ($scope -ne '') {$psexeccommand = "{0}\..\_bin\psexec.exe \\{1} -accepteula -v -n 10 -u {2} -p '{3}' -h -d -c '{4}'" -f $uihash.psscriptroot, $computername, $credsplain.username, $credsplain.password, $uihash.fullscriptname}
-										else {$psexeccommand = "{0}\..\_bin\psexec.exe \\{1} -accepteula -v -n 10 -h -d -c '{2}'" -f $uihash.psscriptroot, $computernames, $uihash.fullscriptname}
+										if ($scope -ne '') { $psexeccommand = "{0}\..\_bin\psexec.exe \\{1} -accepteula -v -n 10 -u {2} -p '{3}' -h -d -c '{4}'" -f $uihash.psscriptroot, $computername, $credsplain.username, $credsplain.password, $uihash.fullscriptname }
+										else { $psexeccommand = "{0}\..\_bin\psexec.exe \\{1} -accepteula -v -n 10 -h -d -c '{2}'" -f $uihash.psscriptroot, $computernames, $uihash.fullscriptname }
 										$cmdkeydelete = "cmdkey.exe /delete:" + $computername
-										if ($scope -ne '') {invoke-expression $cmdkeyadd}
+										if ($scope -ne '') { invoke-expression $cmdkeyadd }
 										invoke-expression $psexeccommand
 										$msg = "{0}: Executing: {1} exitcode:{2}" -f $computername, $uihash.tag, $lastexitcode
-										if ($lastexitcode -in (5, 6, 50, 53, 122, 1311, 1326, 1385, 1460, 2250)) {$type = 'Error'}else {$type = 'OK'}
+										if ($lastexitcode -in (5, 6, 50, 53, 122, 1311, 1326, 1385, 1460, 2250)) { $type = 'Error' }else { $type = 'OK' }
 										out-textblock -ComputerName $computername -Source "Psexec" -Message $msg -MessageType $Type -logfile 'psexec.log'
-										if ($scope -ne '') {invoke-expression $cmdkeydelete}
+										if ($scope -ne '') { invoke-expression $cmdkeydelete }
 									}
-									"ps1" {. $uihash.fullscriptname}
+									"ps1" { . $uihash.fullscriptname }
 									"txt" {
-										$plinkcommand = "{0}\..\_bin\plink.exe -v {2}@{1} -pw '{3}' -m '{4}' >> 'Results\{5}.txt'" -f $uihash.psscriptroot, $computername, $credsplain.username, $credsplain.password, $uihash.fullscriptname, $uihash.tag
+										<#						$plinkcommand = "{0}\..\_bin\plink.exe -v {2}@{1} -pw '{3}' -m '{4}' >> 'Results\{5}.txt'" -f $uihash.psscriptroot, $computername, $credsplain.username, $credsplain.password, $uihash.fullscriptname, $uihash.tag
 										invoke-expression $plinkcommand
 										$msg = "{0}: exitcode:{1} executing:{2}" -f $computername, $lastexitcode, $uihash.tag
 										if ($lastexitcode -eq 1) {$type = 'Error'}else {$type = 'OK'}
 										out-textblock -ComputerName $computername -Source "Plink" -Message $msg -MessageType $type -logfile 'plink.log'
+										#>
+										invoke-remotessh -computername $computername -credential $creds -filepath $uihash.fullscriptname -tag $uihash.tag
+										if ($? -eq $false) { $type = 'Error' }else { $type = 'OK' }
+										out-textblock -ComputerName $computername -Source "RemoteSSH" -Message $uihash.tag -MessageType $type -logfile 'RemoteSSH.log'
 									}
 								}
 
@@ -287,6 +266,8 @@ $uiHash.ButtonRun.Add_Click( {
 						out-textblock -message "END OF DEPLOYMENT" -MessageType "Info"
 						$uiHash.Flag = $False
 						update-window -control 'ButtonRun' -property 'Content' -value 'Run'
+						update-window -control "ProgressBar" -property "Value" -Value 0
+						update-window -control "ProgressBar" -property "IsIndeterminate" -Value $false
 					}#scriptblock
 					if ($uihash.CheckBoxRunspaces.isChecked) {
 						$currentVerbosePreference = $VerbosePreference
@@ -295,21 +276,22 @@ $uiHash.ButtonRun.Add_Click( {
 						$VerbosePreference = $currentVerbosePreference
 					}
 					else {
-						$runspace = [runspacefactory]::CreateRunspace()
-						$runspace.Open()
-						$runspace.SessionStateProxy.SetVariable("uiHash", $uiHash)
-						$temp = "" | Select PowerShell, Handle
-						$temp.PowerShell = [powershell]::Create().AddScript($scriptBlock)
-						$temp.PowerShell.Runspace = $runspace
-						$temp.Handle = $temp.PowerShell.BeginInvoke()
-						$jobs.Add($temp)
+						$Runspace = [runspacefactory]::CreateRunspace()
+						$PowerShell = [powershell]::Create()
+						$PowerShell.Runspace = $Runspace
+						$Runspace.Open()
+						$Runspace.SessionStateProxy.SetVariable("uiHash", $uiHash)
+						$null = $PowerShell.AddScript($scriptblock)
+						#pasa n argumentos
+						#$null = $PowerShell.AddArgument($buscar)
+						$Job = [PSCustomObject]@{ Pipe = $PowerShell; Status = $PowerShell.BeginInvoke() }
 					}
 
 				}
 			}#switch
 
 		}
-		else {out-textblock -message "NOTHING TO DEPLOY" -MessageType "Warning"}
+		else { out-textblock -message "NOTHING TO DEPLOY" -MessageType "Warning" }
 	})
 
 $uihash.RadioButton1.Add_Checked( {
@@ -328,11 +310,11 @@ write-host '  888  "788b                   888'                       -fore Gray
 write-host '  888    888                   888'                       -fore Gray
 write-host '  888    888 ,A8888A, 88888Y,  888 ,A8888A, 888  888'     -fore Gray
 write-host '  888    888 888  888 888 "88Y 888 888  888 888  888'     -fore Gray
-write-host '  888    888 888888Y" 888  888 888 888  888 888  888'     -fore DarkGray
-write-host '  888  ,d88P 888      888  888 888 888  888 Y88b 888'     -fore DarkGray
-write-host '  8888888K"  "Y8888Y" 888888Y" 888 "Y8888Y"  "Y88888'     -fore DarkGray
-write-host '                      888                       "888'     -fore DarkGray
-write-host '                      888                       .888'     -fore DarkGray
-write-host '                      888                    8888P" '     -fore DarkGray
+write-host '  888    888 888888Y" 888  888 888 888  888 888  888'     -fore Gray
+write-host '  888  ,d88P 888      888  888 888 888  888 Y88b 888'     -fore Gray
+write-host '  8888888K"  "Y8888Y" 888888Y" 888 "Y8888Y"  "Y88888'     -fore Gray
+write-host '                      888                       "888'     -fore Gray
+write-host '                      888                       .888'     -fore Gray
+write-host '                      888                    8888P" '     -fore Gray
 write-host ''
 $uiHash.Window.ShowDialog() | Out-Null

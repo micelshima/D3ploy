@@ -21,7 +21,4 @@ Here is an example for restarting a list of computers:
 I have uploaded some of my scripts and batches as examples.
 Notice that underscore '_' character in scriptnames is used to create tree levels inside the GUI treeview in order to keep them organized.
 
-More info about this project in:
-https://systemswin.blogspot.com.es/2017/06/powershell-forms-deploy-batches-to.html
-
 Enjoy!
